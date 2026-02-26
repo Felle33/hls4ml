@@ -105,9 +105,9 @@ class BambuWriter(Writer):
 
         if mode in ['partition', 'reshape']:
             if typ == 'complete':
-                template = '//#pragma HLS ARRAY_{mode} variable={name} {type} dim={dim}'
+                template = '#pragma HLS ARRAY_PARTITION variable={name} {type} dim={dim}'
             else:
-                template = '//#pragma HLS ARRAY_{mode} variable={name} {type} factor={factor} dim={dim}'
+                template = '#pragma HLS ARRAY_PARTITION variable={name} {type} factor={factor} dim={dim}'
 
             return template.format(mode=mode.upper(), name=variable.name, type=typ, factor=factor, dim=0)
 
