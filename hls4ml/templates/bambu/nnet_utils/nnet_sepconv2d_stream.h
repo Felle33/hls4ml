@@ -23,7 +23,7 @@ void depthwise_conv_2d_encoded_cl(
         //#pragma HLS STREAM variable=data_window[i_out] depth=win_depth
     }
 
-    #pragma HLS ARRAY_PARTITION variable=CONFIG_T::pixels complete
+    // #pragma HLS ARRAY_PARTITION variable=CONFIG_T::pixels complete
 
     res_T res_pack;
     PRAGMA_DATA_PACK(res_pack)

@@ -452,7 +452,7 @@ using Slong = long long;
         std::cerr << "  stack:\n";
         ::backtrace_symbols_fd(bt, bt_size, STDERR_FILENO);
         std::cerr << "  stack (lines):\n";
-        ac_print_stacktrace_with_lines(bt, bt_size);
+        // ac_print_stacktrace_with_lines(bt, bt_size);
 #endif
         std::cerr.flush();
       #endif
