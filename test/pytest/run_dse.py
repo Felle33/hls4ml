@@ -1,7 +1,6 @@
 import os
 import subprocess
 import sys
-import itertools
 
 MEM_LIMIT_KB = 16 * 1024 * 1024  # 16 GB
 
@@ -50,22 +49,36 @@ def generate_combinations(all_factors):
                     combo.append(max_factors[j])
             combos.append(tuple(combo))
 
-    return combos
+    return sorted(list(set(combos)))
+
+def launch_screen_session(screen_name, out_dir, defines, cmd):
+    subprocess.run([
+        "screen", "-dmS", screen_name,
+        "bash", "-c", cmd
+    ])
+
+    print(f"[+] Launched '{screen_name}' → {out_dir}/")
+    print(f"    Defines: {defines}\n")
+
+def create_output_dir(dir_suffix):
+    out_dir = f"out_{dir_suffix}"
+    os.makedirs(out_dir, exist_ok=True)
+    return out_dir
 
 all_factors = [unroll_factors(tc) for tc in trip_counts]
 combinations = generate_combinations(all_factors)
 
 print(f"[*] Total combinations: {len(combinations)}")
 
-if len(combinations) > 16:
+# The plus 1 is for the baseline run without array partitioning
+if len(combinations) + 1 > 16:
     print("[*] Error: Too many combinations to run in parallel. Please reduce the number of trip counts or their factors.", file=sys.stderr)
     sys.exit(1)
 
-for combo in combinations:
+for idx_combo, combo in enumerate(combinations):
     # e.g. combo = (4, 8, 2) for 3 loops
-    dir_suffix = "_".join(f"uf{i}_{v}" for i, v in enumerate(combo))
-    out_dir = f"out_{dir_suffix}"
-    os.makedirs(out_dir, exist_ok=True)
+    ufs_dir_suffix = "_".join(f"uf{i}_{v}" for i, v in enumerate(combo))
+    out_dir = create_output_dir(ufs_dir_suffix)
 
     defines = " ".join(f"-DUNROLL_FACTOR_{i}={v}" for i, v in enumerate(combo))
 
@@ -79,20 +92,20 @@ for combo in combinations:
         f"--simulate "
         f"-DRTL_SIM "
         f"--evaluation "
-        f"--device-name=xc7a100t-1csg324 "
+        f"--device-name=xcu55c-2Lfsvh2892 "
         f"--clock-period=5 "
         f"-v4 "
         f"{defines}"
     )
 
-    screen_name = f"dse_{dir_suffix}"
+    screen_name = f"dse_{ufs_dir_suffix}"
     full_cmd = f"ulimit -v {MEM_LIMIT_KB} && cd {out_dir} && ({bambu_cmd} |& tee log.log)"
     # print(f"[CMD] screen -dmS {screen_name} bash -c '{full_cmd}'")
 
-    subprocess.run([
-        "screen", "-dmS", screen_name,
-        "bash", "-c", full_cmd
-    ])
+    launch_screen_session(screen_name, out_dir, defines, full_cmd)
 
-    print(f"[+] Launched '{screen_name}' → {out_dir}/")
-    print(f"    Defines: {defines}\n")
+    if idx_combo == 0:
+        out_dir = create_output_dir(ufs_dir_suffix + "_wo_arr_part")
+        screen_name_wo_arr_part = f"dse_{ufs_dir_suffix}_wo_arr_part"
+        full_cmd_wo_arr_part = f"ulimit -v {MEM_LIMIT_KB} && cd {out_dir} && ({bambu_cmd} --bambu-parameter=panda-lock-csroa=1 |& tee log.log)"
+        launch_screen_session(screen_name_wo_arr_part, out_dir, defines, full_cmd_wo_arr_part)
