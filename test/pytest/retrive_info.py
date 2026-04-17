@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
 import argparse
+import os
 
 
 def parse_xml(file_path):
@@ -26,19 +27,35 @@ def parse_xml(file_path):
 
     return cycles, resources
 
+def print_cycles_and_resources(cycles, resources):
+    print("\tCycles:", cycles)
+    for k, v in resources.items():
+        print(f"\t{k}: {v}")
+    print()
+
+def print_synthesis(dir_path):
+    abs_dir_path = os.path.abspath(dir_path)
+    if not os.path.isdir(abs_dir_path):
+        print(f"[!] Error: {dir_path} is not a valid directory.")
+        return
+    
+    for name in os.listdir(abs_dir_path):
+        if os.path.isdir(os.path.join(abs_dir_path, name)) and name.startswith("out_"):
+            xml_path = os.path.join(abs_dir_path, name, "bambu_results.xml")
+            if os.path.isfile(xml_path):
+                cycles, resources = parse_xml(xml_path)
+                print(f"[+] Synthesis results for {name}:")
+                print_cycles_and_resources(cycles, resources)
+            else:
+                print(f"[*] Warning: bambu_results.xml not found in {name}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Extract cycles and resources from XML")
-    parser.add_argument("xml_file", help="Path to the XML file")
+    parser = argparse.ArgumentParser(description="Extract cycles and resources from directory with synthesis results")
+    parser.add_argument("dir_path", help="Path to the directory containing synthesis results")
 
     args = parser.parse_args()
 
-    cycles, resources = parse_xml(args.xml_file)
-
-    print("Cycles:", cycles)
-    print("Resources:")
-    for k, v in resources.items():
-        print(f"  {k}: {v}")
+    print_synthesis(args.dir_path)
 
 
 if __name__ == "__main__":
